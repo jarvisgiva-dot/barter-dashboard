@@ -958,5 +958,21 @@
     "MAP_vs_Soybean": 23.14421343733363,
     "KCl_vs_Corn": 24.062480117604572,
     "KCl_vs_Soybean": 11.911534549328886
+  },
+  {
+    "Date": "2026-03 (HOJE)",
+    "Soybean": 450.0,
+    "Corn": 181.0,
+    "Urea": 450.0,
+    "MAP_Proxy": 650.0,
+    "KCl": 590.0,
+    "Soybean_Saca": 26.94,
+    "Corn_Saca": 10.86,
+    "Urea_vs_Corn": 41.43,
+    "Urea_vs_Soybean": 16.7,
+    "MAP_vs_Corn": 59.85,
+    "MAP_vs_Soybean": 24.12,
+    "KCl_vs_Corn": 54.32,
+    "KCl_vs_Soybean": 21.9
   }
 ]
