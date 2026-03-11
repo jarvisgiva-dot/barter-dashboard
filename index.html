@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Relação de Troca (Barter)</title>
+    <title>Dashboard Inteligência de Barter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plugin de anotações -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
         body { background-color: #f3f4f6; }
         .chart-container { position: relative; height: 60vh; width: 100%; }
@@ -14,43 +16,59 @@
 </head>
 <body class="bg-gray-100 font-sans">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Dashboard de Barter (Relação de Troca)</h1>
-            <p class="mt-2 text-sm text-gray-600">Histórico de Sacas necessárias para comprar 1 Tonelada de Fertilizante.</p>
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Dashboard de Inteligência: Barter</h1>
+                <p class="mt-2 text-sm text-gray-600">Acompanhamento do poder de compra e zonas de oportunidade (Sacas/t).</p>
+            </div>
+            <!-- Termômetro de Percentil (Feature 4) -->
+            <div class="mt-4 md:mt-0 bg-white border-l-4 border-emerald-500 p-4 rounded shadow-sm w-full md:w-auto md:max-w-sm">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Termômetro de Oportunidade</h3>
+                        <p id="percentile-text" class="text-sm text-gray-600 mt-1">Calculando...</p>
+                    </div>
+                </div>
+            </div>
         </header>
 
-        <div class="bg-white shadow rounded-lg p-6 mb-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-                <div class="flex space-x-4 mb-4 sm:mb-0">
-                    <button id="btn-soybean" class="px-4 py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">Soja vs NPK</button>
-                    <button id="btn-corn" class="px-4 py-2 bg-yellow-500 text-white rounded-md shadow hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">Milho vs NPK</button>
+        <div class="bg-white shadow rounded-lg p-6 mb-8 border border-gray-200">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                <div class="flex space-x-2 mb-4 sm:mb-0">
+                    <button id="btn-soybean" class="px-5 py-2.5 bg-green-700 text-white font-semibold rounded shadow-sm hover:bg-green-800 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500">Soja vs NPK</button>
+                    <button id="btn-corn" class="px-5 py-2.5 bg-yellow-500 text-white font-semibold rounded shadow-sm hover:bg-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400">Milho vs NPK</button>
                 </div>
-                <div class="flex space-x-2">
-                    <button id="btn-1y" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">1 Ano</button>
-                    <button id="btn-3y" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">3 Anos</button>
-                    <button id="btn-5y" class="px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700">5 Anos</button>
+                <div class="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+                    <button id="btn-1y" class="px-4 py-1.5 text-sm font-medium rounded-md text-gray-700 hover:bg-white hover:shadow-sm transition-all">1 Ano</button>
+                    <button id="btn-3y" class="px-4 py-1.5 text-sm font-medium rounded-md text-gray-700 hover:bg-white hover:shadow-sm transition-all">3 Anos</button>
+                    <button id="btn-5y" class="px-4 py-1.5 text-sm font-medium rounded-md bg-white shadow-sm text-gray-900 transition-all">5 Anos</button>
                 </div>
             </div>
 
-            <h2 id="chart-title" class="text-xl font-semibold text-gray-800 mb-4 text-center">Soja: Relação de Troca (Sacas por Tonelada de Fertilizante)</h2>
+            <h2 id="chart-title" class="text-xl font-bold text-gray-800 mb-2 text-center">Soja: Relação de Troca (Sacas por Tonelada de Fertilizante)</h2>
+            <p class="text-center text-xs text-gray-500 mb-4">Linhas sólidas: Média Móvel (3 meses) | Linhas transparentes: Cotação real</p>
             <div class="chart-container">
                 <canvas id="barterChart"></canvas>
             </div>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white shadow rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Metodologia e Fonte</h3>
+            <div class="bg-white shadow rounded-lg p-6 border border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Metodologia e Alvos</h3>
                 <ul class="list-disc list-inside text-sm text-gray-600 space-y-2">
-                    <li>Preços Históricos: World Bank (The Pink Sheet), convertidos para $/Saca (60kg).</li>
-                    <li>Relação de Troca = Preço do Fertilizante ($/t) / Preço do Grão ($/saca).</li>
-                    <li>Ureia: Ureia (Black Sea/Baltic).</li>
-                    <li>MAP: MAP (Proxy usando DAP US Gulf).</li>
-                    <li>KCl: Cloreto de Potássio (Vancouver).</li>
+                    <li><strong>Alvos de Oportunidade (Soja):</strong> Ureia < 14 sc/t | KCl < 15 sc/t | MAP < 20 sc/t.</li>
+                    <li><strong>Média Móvel (Filtro de Ruído):</strong> Utilizada janela de 3 meses para suavizar a volatilidade dos preços nominais.</li>
+                    <li><strong>Cálculo do Percentil:</strong> Compara a relação atual combinada (Soma dos 3 fertilizantes) com todo o histórico de 5 anos.</li>
+                    <li>Fonte: World Bank (Pink Sheet). Ureia (Black Sea), MAP (Proxy US Gulf DAP), KCl (Vancouver).</li>
                 </ul>
             </div>
-            <div class="bg-white shadow rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Últimas Cotações (Média)</h3>
+            <div class="bg-white shadow rounded-lg p-6 border border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Últimas Cotações</h3>
                 <div id="latest-prices" class="text-sm text-gray-700 space-y-2">
                     Carregando...
                 </div>
@@ -59,6 +77,9 @@
     </div>
 
     <script>
+        // Registrar o plugin de anotação
+        Chart.register(window['chartjs-plugin-annotation']);
+
         let barterData = [];
         let currentCrop = 'soybean'; // 'soybean' or 'corn'
         let currentYears = 5;
@@ -88,74 +109,189 @@
                 const btn = document.getElementById(id);
                 const val = i === 0 ? 1 : (i === 1 ? 3 : 5);
                 if(val === currentYears) {
-                    btn.classList.add('bg-gray-800', 'text-white');
-                    btn.classList.remove('bg-gray-200', 'text-gray-700');
+                    btn.classList.add('bg-white', 'shadow-sm', 'text-gray-900');
+                    btn.classList.remove('text-gray-700');
                 } else {
-                    btn.classList.remove('bg-gray-800', 'text-white');
-                    btn.classList.add('bg-gray-200', 'text-gray-700');
+                    btn.classList.remove('bg-white', 'shadow-sm', 'text-gray-900');
+                    btn.classList.add('text-gray-700');
                 }
             });
         }
 
+        // Função para Média Móvel (Feature 2)
+        function computeMA(data, windowSize = 3) {
+            return data.map((val, idx, arr) => {
+                if (idx < windowSize - 1) return null;
+                let sum = 0;
+                for (let i = 0; i < windowSize; i++) {
+                    sum += parseFloat(arr[idx - i]);
+                }
+                return (sum / windowSize).toFixed(2);
+            });
+        }
+
+        // Função do Termômetro (Feature 4)
+        function updatePercentileWidget() {
+            if(barterData.length === 0) return;
+            const past5Years = barterData.slice(-60);
+            const current = past5Years[past5Years.length - 1];
+            
+            const getBasket = (d) => {
+                if (currentCrop === 'soybean') return d.Urea_vs_Soybean + d.MAP_vs_Soybean + d.KCl_vs_Soybean;
+                return d.Urea_vs_Corn + d.MAP_vs_Corn + d.KCl_vs_Corn;
+            };
+            
+            const currentBasket = getBasket(current);
+            const worseBaskets = past5Years.filter(d => getBasket(d) > currentBasket).length;
+            const percentile = Math.round((worseBaskets / past5Years.length) * 100);
+            
+            let text = `O Barter atual é melhor que <strong class="text-lg">${percentile}%</strong> dos últimos 5 anos. `;
+            
+            if (percentile >= 85) {
+                text += '<span class="text-emerald-600 font-bold block mt-1">★ Top 15% - Momento Excelente!</span>';
+            } else if (percentile >= 50) {
+                text += '<span class="text-yellow-600 font-bold block mt-1">● Na média - Neutro.</span>';
+            } else {
+                text += '<span class="text-red-500 font-bold block mt-1">▼ Momento Desfavorável.</span>';
+            }
+            
+            document.getElementById('percentile-text').innerHTML = text;
+        }
+
         function filterDataByYears(data, years) {
             if (data.length === 0) return [];
-            // Assuming 1 data point = 1 month
             const months = years * 12;
             return data.slice(-months);
         }
 
         function updateDashboard() {
-            const dataToRender = filterDataByYears(barterData, currentYears);
+            updatePercentileWidget();
+
+            // Extrair as séries baseadas na cultura atual
+            const uArr = barterData.map(d => currentCrop === 'soybean' ? d.Urea_vs_Soybean : d.Urea_vs_Corn);
+            const mArr = barterData.map(d => currentCrop === 'soybean' ? d.MAP_vs_Soybean : d.MAP_vs_Corn);
+            const kArr = barterData.map(d => currentCrop === 'soybean' ? d.KCl_vs_Soybean : d.KCl_vs_Corn);
+
+            // Calcular Média Móvel sobre todo o histórico para não faltar dados no corte
+            const uMA = computeMA(uArr, 3);
+            const mMA = computeMA(mArr, 3);
+            const kMA = computeMA(kArr, 3);
+
+            // Adicionar MA aos dados
+            const enrichedData = barterData.map((d, i) => ({
+                ...d,
+                U_MA: uMA[i],
+                M_MA: mMA[i],
+                K_MA: kMA[i],
+                U_Raw: uArr[i].toFixed(2),
+                M_Raw: mArr[i].toFixed(2),
+                K_Raw: kArr[i].toFixed(2)
+            }));
+
+            const dataToRender = filterDataByYears(enrichedData, currentYears);
             if(dataToRender.length === 0) return;
 
             const labels = dataToRender.map(d => d.Date);
-            let datasetUrea, datasetMAP, datasetKCl;
+            
+            const datasetU_Raw = dataToRender.map(d => d.U_Raw);
+            const datasetM_Raw = dataToRender.map(d => d.M_Raw);
+            const datasetK_Raw = dataToRender.map(d => d.K_Raw);
+
+            const datasetU_MA = dataToRender.map(d => d.U_MA);
+            const datasetM_MA = dataToRender.map(d => d.M_MA);
+            const datasetK_MA = dataToRender.map(d => d.K_MA);
 
             if (currentCrop === 'soybean') {
                 document.getElementById('chart-title').innerText = 'Soja: Relação de Troca (Sacas / Tonelada de Fertilizante)';
                 document.getElementById('btn-soybean').classList.replace('bg-green-600', 'bg-green-700');
+                if(!document.getElementById('btn-soybean').classList.contains('bg-green-700')) document.getElementById('btn-soybean').classList.add('bg-green-700');
                 document.getElementById('btn-corn').classList.replace('bg-yellow-600', 'bg-yellow-500');
-
-                datasetUrea = dataToRender.map(d => d.Urea_vs_Soybean.toFixed(2));
-                datasetMAP = dataToRender.map(d => d.MAP_vs_Soybean.toFixed(2));
-                datasetKCl = dataToRender.map(d => d.KCl_vs_Soybean.toFixed(2));
             } else {
                 document.getElementById('chart-title').innerText = 'Milho: Relação de Troca (Sacas / Tonelada de Fertilizante)';
                 document.getElementById('btn-soybean').classList.replace('bg-green-700', 'bg-green-600');
                 document.getElementById('btn-corn').classList.replace('bg-yellow-500', 'bg-yellow-600');
-
-                datasetUrea = dataToRender.map(d => d.Urea_vs_Corn.toFixed(2));
-                datasetMAP = dataToRender.map(d => d.MAP_vs_Corn.toFixed(2));
-                datasetKCl = dataToRender.map(d => d.KCl_vs_Corn.toFixed(2));
+                if(!document.getElementById('btn-corn').classList.contains('bg-yellow-600')) document.getElementById('btn-corn').classList.add('bg-yellow-600');
             }
 
-            renderChart(labels, datasetUrea, datasetMAP, datasetKCl);
+            renderChart(labels, datasetU_Raw, datasetM_Raw, datasetK_Raw, datasetU_MA, datasetM_MA, datasetK_MA);
 
             // Update latest prices
             const last = barterData[barterData.length - 1];
             document.getElementById('latest-prices').innerHTML = `
-                <p><strong>Data de Referência:</strong> ${last.Date}</p>
+                <div class="flex items-center justify-between border-b pb-2 mb-2">
+                    <span class="font-medium text-gray-500">Data de Referência:</span>
+                    <span class="font-bold text-gray-800">${last.Date}</span>
+                </div>
                 <div class="grid grid-cols-2 gap-4 mt-2">
-                    <div>
-                        <p class="font-semibold text-green-700">Grãos ($/Saca)</p>
-                        <p>Soja: $${(last.Soybean * 0.06).toFixed(2)}</p>
-                        <p>Milho: $${(last.Corn * 0.06).toFixed(2)}</p>
+                    <div class="bg-green-50 p-3 rounded border border-green-100">
+                        <p class="font-bold text-green-800 mb-1">Grãos ($/Saca)</p>
+                        <p class="text-sm">Soja: <strong>$${(last.Soybean * 0.06).toFixed(2)}</strong></p>
+                        <p class="text-sm">Milho: <strong>$${(last.Corn * 0.06).toFixed(2)}</strong></p>
                     </div>
-                    <div>
-                        <p class="font-semibold text-blue-700">Fertilizantes ($/t)</p>
-                        <p>Ureia: $${last.Urea.toFixed(2)}</p>
-                        <p>MAP (Proxy): $${last.MAP_Proxy.toFixed(2)}</p>
-                        <p>KCl: $${last.KCl.toFixed(2)}</p>
+                    <div class="bg-blue-50 p-3 rounded border border-blue-100">
+                        <p class="font-bold text-blue-800 mb-1">Fertilizantes ($/t)</p>
+                        <p class="text-sm">Ureia: <strong>$${last.Urea.toFixed(2)}</strong></p>
+                        <p class="text-sm">MAP (Proxy): <strong>$${last.MAP_Proxy.toFixed(2)}</strong></p>
+                        <p class="text-sm">KCl: <strong>$${last.KCl.toFixed(2)}</strong></p>
                     </div>
                 </div>
             `;
         }
 
-        function renderChart(labels, uData, mData, kData) {
+        function renderChart(labels, uRaw, mRaw, kRaw, uMA, mMA, kMA) {
             const ctx = document.getElementById('barterChart').getContext('2d');
             
             if (chartInstance) {
                 chartInstance.destroy();
+            }
+
+            // Feature 1 e 3: Zonas de Oportunidade e Eventos Macro
+            let annotations = {
+                ukraine: {
+                    type: 'line',
+                    scaleID: 'x',
+                    value: '2022-02',
+                    borderColor: 'rgba(55, 65, 81, 0.7)',
+                    borderWidth: 2,
+                    borderDash: [4, 4],
+                    label: { content: 'Guerra Ucrânia', display: true, position: 'start', yAdjust: 30, backgroundColor: 'rgba(31, 41, 55, 0.8)', color: 'white', font: {size: 10} }
+                },
+                gaza: {
+                    type: 'line',
+                    scaleID: 'x',
+                    value: '2023-10',
+                    borderColor: 'rgba(55, 65, 81, 0.7)',
+                    borderWidth: 2,
+                    borderDash: [4, 4],
+                    label: { content: 'Mar Vermelho / Gaza', display: true, position: 'start', yAdjust: 60, backgroundColor: 'rgba(31, 41, 55, 0.8)', color: 'white', font: {size: 10} }
+                }
+            };
+
+            // Zonas de Oportunidade visíveis apenas para Soja para evitar distorção de escala com Milho
+            if (currentCrop === 'soybean') {
+                annotations.targetUrea = {
+                    type: 'line', yMin: 14, yMax: 14, borderColor: '#3b82f6', borderWidth: 1.5, borderDash: [5, 5],
+                    label: { content: 'Alvo Ureia < 14', display: true, position: 'start', backgroundColor: 'rgba(59, 130, 246, 0.8)', color: 'white', font: {size: 10} }
+                };
+                annotations.targetMAP = {
+                    type: 'line', yMin: 20, yMax: 20, borderColor: '#ef4444', borderWidth: 1.5, borderDash: [5, 5],
+                    label: { content: 'Alvo MAP < 20', display: true, position: 'end', backgroundColor: 'rgba(239, 68, 68, 0.8)', color: 'white', font: {size: 10} }
+                };
+                annotations.targetKCl = {
+                    type: 'line', yMin: 15, yMax: 15, borderColor: '#8b5cf6', borderWidth: 1.5, borderDash: [5, 5],
+                    label: { content: 'Alvo KCl < 15', display: true, position: 'center', backgroundColor: 'rgba(139, 92, 246, 0.8)', color: 'white', font: {size: 10} }
+                };
+                
+                // Shade areas for target
+                annotations.boxUrea = {
+                    type: 'box', yMin: 0, yMax: 14, backgroundColor: 'rgba(59, 130, 246, 0.05)', borderWidth: 0
+                };
+                annotations.boxMAP = {
+                    type: 'box', yMin: 0, yMax: 20, backgroundColor: 'rgba(239, 68, 68, 0.05)', borderWidth: 0
+                };
+                annotations.boxKCl = {
+                    type: 'box', yMin: 0, yMax: 15, backgroundColor: 'rgba(139, 92, 246, 0.05)', borderWidth: 0
+                };
             }
 
             chartInstance = new Chart(ctx, {
@@ -163,35 +299,67 @@
                 data: {
                     labels: labels,
                     datasets: [
+                        // Raw (Faded)
                         {
-                            label: 'Ureia',
-                            data: uData,
+                            label: 'Ureia (Mensal)',
+                            data: uRaw,
+                            borderColor: 'rgba(59, 130, 246, 0.25)', // blue
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'MAP (Mensal)',
+                            data: mRaw,
+                            borderColor: 'rgba(239, 68, 68, 0.25)', // red
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'KCl (Mensal)',
+                            data: kRaw,
+                            borderColor: 'rgba(139, 92, 246, 0.25)', // purple
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        // Moving Averages (Solid)
+                        {
+                            label: 'Ureia (MM 3M)',
+                            data: uMA,
                             borderColor: '#3b82f6', // blue-500
                             backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            borderWidth: 2,
+                            borderWidth: 3,
                             pointRadius: 2,
                             fill: false,
-                            tension: 0.3
+                            tension: 0.4
                         },
                         {
-                            label: 'MAP',
-                            data: mData,
+                            label: 'MAP (MM 3M)',
+                            data: mMA,
                             borderColor: '#ef4444', // red-500
                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            borderWidth: 2,
+                            borderWidth: 3,
                             pointRadius: 2,
                             fill: false,
-                            tension: 0.3
+                            tension: 0.4
                         },
                         {
-                            label: 'KCl',
-                            data: kData,
+                            label: 'KCl (MM 3M)',
+                            data: kMA,
                             borderColor: '#8b5cf6', // purple-500
                             backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                            borderWidth: 2,
+                            borderWidth: 3,
                             pointRadius: 2,
                             fill: false,
-                            tension: 0.3
+                            tension: 0.4
                         }
                     ]
                 },
@@ -203,24 +371,35 @@
                         intersect: false,
                     },
                     plugins: {
+                        annotation: {
+                            annotations: annotations
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
+                                    if(context.dataset.label.includes('Mensal')) return null; // Hide raw data from tooltip to keep it clean
                                     return context.dataset.label + ': ' + context.parsed.y + ' sacas';
                                 }
                             }
                         },
                         legend: {
                             position: 'top',
+                            labels: {
+                                filter: function(item, chart) {
+                                    // Mostra apenas as legendas da Média Móvel
+                                    return item.text.includes('MM');
+                                }
+                            }
                         }
                     },
                     scales: {
                         y: {
                             title: {
                                 display: true,
-                                text: 'Sacas necessárias'
+                                text: 'Sacas necessárias / t'
                             },
-                            beginAtZero: false
+                            beginAtZero: false,
+                            suggestedMin: currentCrop === 'soybean' ? 5 : 15 // better scaling
                         },
                         x: {
                             title: {
